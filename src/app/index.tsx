@@ -1,98 +1,151 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { Button } from '@/components/fitflow/button';
+import { Card } from '@/components/fitflow/card';
+import { Icon } from '@/components/fitflow/icon';
+import { Pill } from '@/components/fitflow/pill';
+import { ProgressBar } from '@/components/fitflow/progress-bar';
+import { ScreenContainer } from '@/components/fitflow/screen-container';
+import { StatTile } from '@/components/fitflow/stat-tile';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { Spacing } from '@/constants/theme';
+import { useAppData } from '@/context/app-data';
+import { DAILY_FLOW_WORKOUT, MOTIVATIONAL_MESSAGES, USER_NAME, getGreeting } from '@/data/mock-data';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+  const theme = useTheme();
+  const { streak, weeklyWorkoutsCompleted, weeklyWorkoutGoal, todayActivity } = useAppData();
+  const greeting = useMemo(() => getGreeting(), []);
+  const [motivation] = useState(
+    () => MOTIVATIONAL_MESSAGES[Math.floor(Math.random() * MOTIVATIONAL_MESSAGES.length)]
+  );
 
-        <ThemedText type="code" style={styles.code}>
-          get started
+  return (
+    <ScreenContainer>
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <ThemedText type="subtitle">
+            {greeting}, {USER_NAME}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Let&apos;s make today count.
+          </ThemedText>
+        </View>
+        <View style={[styles.streakBadge, { backgroundColor: theme.primaryMuted }]}>
+          <Icon name="flame.fill" size={18} color={theme.primaryDark} />
+          <ThemedText type="smallBold" style={{ color: theme.primaryDark }}>
+            {streak} day streak
+          </ThemedText>
+        </View>
+      </View>
+
+      <Card>
+        <View style={styles.rowBetween}>
+          <ThemedText type="smallBold">This week&apos;s workouts</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {weeklyWorkoutsCompleted}/{weeklyWorkoutGoal}
+          </ThemedText>
+        </View>
+        <ProgressBar progress={weeklyWorkoutsCompleted / weeklyWorkoutGoal} />
+      </Card>
+
+      <View style={styles.statsRow}>
+        <StatTile icon="figure.walk" value={todayActivity.steps.toLocaleString()} label="Steps" />
+        <StatTile icon="flame.fill" value={`${todayActivity.caloriesBurned}`} label="Calories" />
+        <StatTile icon="clock.fill" value={`${todayActivity.workoutMinutes} min`} label="Active" />
+      </View>
+
+      <Card style={styles.dailyFlowCard}>
+        <View style={styles.rowBetween}>
+          <ThemedText type="smallBold" style={{ color: theme.primaryDark }}>
+            DAILY FLOW
+          </ThemedText>
+          <Pill label="AI-Powered · Personalized" tone="primary" />
+        </View>
+
+        <ThemedText type="title" style={styles.workoutName}>
+          {DAILY_FLOW_WORKOUT.name}
         </ThemedText>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+        <View style={styles.metaRow}>
+          <Pill label={`${DAILY_FLOW_WORKOUT.estimatedMinutes} min`} />
+          <Pill label={DAILY_FLOW_WORKOUT.difficulty} />
+        </View>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+        <ThemedText type="small" themeColor="textSecondary">
+          {DAILY_FLOW_WORKOUT.description}
+        </ThemedText>
+
+        <Button
+          title="Start Workout"
+          icon="figure.run"
+          onPress={() => router.push('/workout')}
+          style={styles.startButton}
+        />
+      </Card>
+
+      <Card style={styles.motivationCard}>
+        <Icon name="quote.opening" size={16} color={theme.textSecondary} />
+        <ThemedText type="small" themeColor="textSecondary" style={styles.motivationText}>
+          {motivation}
+        </ThemedText>
+      </Card>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.one,
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
+  headerText: {
+    gap: Spacing.half,
+    flexShrink: 1,
+  },
+  streakBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+    borderRadius: Spacing.five,
   },
-  heroSection: {
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  dailyFlowCard: {
+    gap: Spacing.two,
+  },
+  workoutName: {
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  startButton: {
+    marginTop: Spacing.one,
+  },
+  motivationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  motivationText: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+    fontStyle: 'italic',
   },
 });
